@@ -1,0 +1,246 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1136,
+        0
+      ],
+      "id": "cc8d8896-83d3-4a1e-b718-4f105170e3c5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -976,
+        0
+      ],
+      "id": "9a943387-7543-448f-a56d-5bed34efe7a5",
+      "name": "Get many messages",
+      "webhookId": "3d58f3a4-8a6c-49c0-98d3-642fb23bd026",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "T49WyE5hyyhSkaTC",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -752,
+        0
+      ],
+      "id": "f5bfc439-b843-41aa-8449-04567f045aa6",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI Customer Support Agent.\n\nAnalyze the email and return ONLY valid JSON.\n\nEmail Details:\n\nFrom: {{$json.From}}\nSubject: {{$json.Subject}}\nMessage: {{$json.snippet}}\n\nClassify into one of:\n\n- Billing\n- Technical Support\n- Complaint\n- Sales Inquiry\n- General Inquiry\n- Job Application\n- Other\n\nPriority:\n- High\n- Medium\n- Low\n\nReturn JSON format only:\n\n{\n  \"Category\": \"\",\n  \"Priority\": \"\",\n  \"Summary\": \"\"\n}",
+        "options": {
+          "systemMessage": "You are You are a professional customer support classifier.\n\nAlways return valid JSON only.\n\nDo not return markdown.\nDo not return explanations.\nDo not return extra text.\n\nOutput format:\n\n{\n  \"Category\": \"\",\n  \"Priority\": \"\",\n  \"Summary\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -464,
+        -96
+      ],
+      "id": "337b38d2-9227-4611-ae23-93e04fe363d6",
+      "name": "AI Agent",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "model": "llama3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        224
+      ],
+      "id": "25b53265-00aa-4181-b264-a0c31f3e1f8c",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "ZVyPal45WbfjMo8k",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -128,
+        -16
+      ],
+      "id": "7ce29383-41ac-48d1-ba2a-b584c5658efb",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const aiData = JSON.parse($json.output);\n\nreturn {\n  json: {\n    ...$json,\n    Category: aiData.Category,\n    Priority: aiData.Priority,\n    Summary: aiData.Summary\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        16
+      ],
+      "id": "455b7668-6b89-4628-8912-57be40fa9895",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO processed_emails\n(\n email_hash,\n \"from\",\n subject,\n workflow_processed_time,\n email_snippet,\n message_id,\n email_received_time,\n category,\n priority,\n summary\n)\nVALUES\n(\n '{{ $json.id }}',\n '{{ ($json.From || \"\").replace(/'/g, \"''\") }}',\n '{{ ($json.Subject || \"\").replace(/'/g, \"''\") }}',\n NOW(),\n '{{ ($json.snippet || \"\").replace(/'/g, \"''\") }}',\n '{{ $json.id }}',\n to_timestamp({{ Number($json.internalDate) / 1000 }}),\n '{{ ($json.Category || \"\").replace(/'/g, \"''\") }}',\n '{{ ($json.Priority || \"\").replace(/'/g, \"''\") }}',\n '{{ ($json.Summary || \"\").replace(/'/g, \"''\") }}'\n)\nON CONFLICT (email_hash)\nDO NOTHING;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        16
+      ],
+      "id": "351e5e6d-6154-460b-aacb-a5e444d3a284",
+      "name": "Execute a SQL query",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "tPtmqqJRYb7pMRb3",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b9049eb944861317a7df2ed80c670055d357f1e1e0be3418860db7ef47610a41"
+  }
+}

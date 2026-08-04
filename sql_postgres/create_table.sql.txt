@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS processed_emails (
+    id SERIAL PRIMARY KEY,
+
+    email_hash VARCHAR(255) UNIQUE NOT NULL,
+
+    "from" TEXT,
+
+    subject TEXT,
+
+    workflow_processed_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    email_snippet TEXT,
+
+    message_id VARCHAR(255),
+
+    email_received_time TIMESTAMP,
+
+    category VARCHAR(100),
+
+    priority VARCHAR(50),
+
+    summary TEXT
+);
