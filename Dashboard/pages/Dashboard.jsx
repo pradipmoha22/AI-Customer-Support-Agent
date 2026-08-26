@@ -30,6 +30,12 @@ function Dashboard() {
         console.log("Categories:", categoriesRes.data);
         console.log("Emails:", emailsRes.data);
 
+        // Check complete first email object
+        console.log(
+          "First Email JSON:",
+          JSON.stringify(emailsRes.data[0], null, 2)
+        );
+
         setStats(statsRes.data);
         setCategories(categoriesRes.data);
         setEmails(emailsRes.data);

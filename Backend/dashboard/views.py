@@ -58,6 +58,7 @@ def recent_emails(request):
             "category": email.category,
             "priority": email.priority,
             "summary": email.summary,
+            "email_body": email.email_body,
             "received_time": email.email_received_time,
         })
 

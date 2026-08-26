@@ -13,6 +13,7 @@ class ProcessedEmail(models.Model):
     category = models.CharField(max_length=100)
     priority = models.CharField(max_length=50)
     summary = models.TextField()
+    email_body = models.TextField(null=True, blank=True)
 
     class Meta:
         managed = False
