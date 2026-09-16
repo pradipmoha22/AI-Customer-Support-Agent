@@ -114,4 +114,5 @@ MAILERS = {
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "https://ai-customer-support-agent-1-6qsr.onrender.com",
 ]
