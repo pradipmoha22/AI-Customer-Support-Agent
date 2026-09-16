@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:8000/api",
+ baseURL: "https://ai-customer-support-agent-mpg5.onrender.com/api",
 });
 
 export const getDashboardStats = () =>
